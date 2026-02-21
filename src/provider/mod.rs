@@ -1,5 +1,6 @@
 pub mod coingecko;
 pub mod coinmarketcap;
+pub mod frankfurter;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};

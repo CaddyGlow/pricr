@@ -4,7 +4,7 @@ Thanks for contributing to `cryptoprice`.
 
 ## Development Setup
 
-1. Install stable Rust (edition 2024 compatible).
+1. Install stable Rust (1.85+; edition 2024).
 2. Clone the repository.
 3. Build once to confirm your environment:
 
@@ -36,10 +36,29 @@ git config core.hooksPath .githooks
 
 ## Code Guidelines
 
-- Keep network I/O async; do not use blocking HTTP clients.
-- Use the project error type and avoid `unwrap()` in non-test code.
-- Keep modules focused and aligned with current architecture.
-- Add or update tests with behavior changes.
+The conventions below match how the current codebase is written in `src/`.
+Follow these patterns unless the PR is intentionally refactoring them.
+
+- Keep network I/O async; use `tokio` + `reqwest` and never `reqwest::blocking`.
+- Keep orchestration in `src/main.rs`; put provider logic in `src/provider/*`, formatting in `src/output/*`, and conversion logic in `src/calc.rs`.
+- Implement new providers behind the `PriceProvider` trait (`name`, `id`, `get_prices`) in `src/provider/mod.rs`.
+- Prefer batched provider requests when an API supports it (single request for multiple symbols).
+- Use the unified `crate::error::Error` and `crate::error::Result<T>` across modules.
+- Avoid `unwrap()` in non-test code; in rare startup/invariant spots, use explicit `expect(...)` messages.
+- Keep public items documented with brief doc comments.
+- Keep modules focused and relatively small (rough target: around 300 lines max per file).
+- Use `tracing` for diagnostics: `info` for app flow, `debug` for request/response metadata, `trace` for payload-level details.
+- Keep machine-readable output on stdout (`--json`), and keep logs on stderr.
+- Preserve output contracts: table output in `src/output/table.rs`, JSON serialization in `src/output/json.rs`.
+- Keep symbol/currency normalization explicit (`to_uppercase`/`to_lowercase`) at API boundaries.
+- When changing behavior, update docs (`README.md`, this file) in the same PR.
+
+## Testing Guidelines
+
+- Add or update tests for behavior changes.
+- Prefer unit tests with fixture JSON strings for parsing/validation logic.
+- Do not make live network calls in default tests.
+- For HTTP behavior tests, prefer mock-based tests (for example with `wiremock`).
 
 ## Pull Requests
 

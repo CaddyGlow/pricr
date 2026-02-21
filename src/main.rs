@@ -1,5 +1,6 @@
 use clap::Parser;
 use cryptoprice::{calc, config, error, output, provider};
+use std::path::PathBuf;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
@@ -26,12 +27,16 @@ struct Cli {
     provider: String,
 
     /// Fiat currency for prices
-    #[arg(long, short, default_value = config::DEFAULT_CURRENCY)]
-    currency: String,
+    #[arg(long, short)]
+    currency: Option<String>,
 
     /// API key for providers that require one
     #[arg(long, env = "COINMARKETCAP_API_KEY")]
     api_key: Option<String>,
+
+    /// Explicit config file path (overrides XDG lookup)
+    #[arg(long)]
+    config: Option<PathBuf>,
 
     /// List available providers
     #[arg(long)]
@@ -75,7 +80,20 @@ async fn main() {
 }
 
 async fn run(cli: Cli) -> Result<()> {
-    let providers = provider::available_providers(cli.api_key.clone());
+    let app_config = match cli.config.as_deref() {
+        Some(path) => config::load_from_path(path)?,
+        None => config::load()?,
+    };
+
+    let merged_api_key = cli
+        .api_key
+        .or_else(|| app_config.coinmarketcap.api_key.clone());
+    let providers = provider::available_providers(merged_api_key);
+
+    let currency = cli
+        .currency
+        .or_else(|| app_config.defaults.currency.clone())
+        .unwrap_or_else(|| config::DEFAULT_CURRENCY.to_string());
 
     if cli.list_providers {
         println!("Available providers:");
@@ -124,12 +142,12 @@ async fn run(cli: Cli) -> Result<()> {
         );
 
         let mut conversions: Vec<calc::Conversion> = Vec::new();
+        let fiat_provider = provider::frankfurter::Frankfurter::new();
 
         match (fiat_targets.is_empty(), crypto_targets.is_empty()) {
             // Both fiat and crypto targets -- fetch concurrently.
             (false, false) => {
-                let http_client = reqwest::Client::new();
-                let fiat_fut = calc::fetch_fiat_rates(&http_client, &fiat.currency, &fiat_targets);
+                let fiat_fut = fiat_provider.get_rates(&fiat.currency, &fiat_targets);
                 let crypto_fut = prov.get_prices(&crypto_targets, &fiat.currency);
 
                 let (fiat_result, crypto_result) = tokio::join!(fiat_fut, crypto_fut);
@@ -167,9 +185,9 @@ async fn run(cli: Cli) -> Result<()> {
             }
             // Only fiat targets.
             (false, true) => {
-                let http_client = reqwest::Client::new();
-                let rates =
-                    calc::fetch_fiat_rates(&http_client, &fiat.currency, &fiat_targets).await?;
+                let rates = fiat_provider
+                    .get_rates(&fiat.currency, &fiat_targets)
+                    .await?;
                 for target in &fiat_targets {
                     let upper = target.to_uppercase();
                     if let Some(&rate) = rates.get(&upper) {
@@ -218,11 +236,11 @@ async fn run(cli: Cli) -> Result<()> {
     info!(
         provider = prov.id(),
         symbols = ?cli.symbols,
-        currency = %cli.currency,
+        currency = %currency,
         "fetching prices"
     );
 
-    let prices = prov.get_prices(&cli.symbols, &cli.currency).await?;
+    let prices = prov.get_prices(&cli.symbols, &currency).await?;
 
     if cli.json {
         output::json::print_json(&prices)?;

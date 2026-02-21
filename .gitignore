@@ -1,4 +1,26 @@
+# Rust 
 /target
+
+# LLM
 CLAUDE.md
-.env*
 .claude
+
+.env*
+
+# Direnv
+.envrc
+
+# Nix
+.data
+flake.lock
+/result
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+*.egg-info/
+

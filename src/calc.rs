@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
-use tracing::debug;
-
-use crate::error::{Error, Result};
 
 /// Recognized fiat currency codes. Prevents false positives on tokens like `1inch` or `3btc`.
 const KNOWN_FIAT: &[&str] = &[
@@ -114,41 +109,6 @@ pub fn fiat_name(code: &str) -> &str {
     }
 }
 
-/// Response shape from `https://api.frankfurter.dev/v1/latest`.
-#[derive(Debug, Deserialize)]
-struct FrankfurterResponse {
-    rates: HashMap<String, f64>,
-}
-
-/// Fetch forex rates from the Frankfurter API. Returns a map of target currency -> rate.
-///
-/// The rate value represents "1 source = rate target" (e.g. 1 USD = 0.85 EUR).
-pub async fn fetch_fiat_rates(
-    client: &reqwest::Client,
-    from: &str,
-    to: &[String],
-) -> Result<HashMap<String, f64>> {
-    let to_param = to.join(",");
-    let url = format!(
-        "https://api.frankfurter.dev/v1/latest?from={}&to={}",
-        from.to_uppercase(),
-        to_param.to_uppercase(),
-    );
-
-    debug!(url = %url, "fetching forex rates from Frankfurter");
-
-    let resp = client.get(&url).send().await?.error_for_status()?;
-    let body: FrankfurterResponse = resp.json().await?;
-
-    debug!(rates = ?body.rates, "received forex rates");
-
-    if body.rates.is_empty() {
-        return Err(Error::NoResults);
-    }
-
-    Ok(body.rates)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,14 +173,5 @@ mod tests {
     #[test]
     fn fiat_name_unknown_returns_code() {
         assert_eq!(fiat_name("XYZ"), "XYZ");
-    }
-
-    #[test]
-    fn frankfurter_response_parsing() {
-        let json = r#"{"amount":1.0,"base":"USD","date":"2026-02-20","rates":{"EUR":0.84983,"GBP":0.74174}}"#;
-        let resp: FrankfurterResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(resp.rates.len(), 2);
-        assert!((resp.rates["EUR"] - 0.84983).abs() < 1e-6);
-        assert!((resp.rates["GBP"] - 0.74174).abs() < 1e-6);
     }
 }
