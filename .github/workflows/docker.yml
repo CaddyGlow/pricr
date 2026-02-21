@@ -19,6 +19,9 @@ on:
 jobs:
   docker:
     name: Publish Docker Image
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/docker-publish.yml
     with:
       ref: ${{ github.event.release.tag_name || github.event.inputs.ref || github.ref }}
