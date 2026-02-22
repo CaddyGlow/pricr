@@ -3,7 +3,8 @@ use tabled::settings::Style;
 use tabled::{Table, Tabled};
 
 use crate::calc::{self, Conversion};
-use crate::provider::CoinPrice;
+use crate::output::chart;
+use crate::provider::{CoinPrice, HistoryInterval, PriceHistory};
 
 #[derive(Tabled)]
 struct PriceRow {
@@ -96,6 +97,55 @@ pub fn print_conversions_table(conversions: &[Conversion]) {
 
     let table = Table::new(rows).with(Style::rounded()).to_string();
     println!("{}", table);
+}
+
+/// Print ASCII charts for historical price series.
+pub fn print_history_charts(histories: &[PriceHistory], days: u32, interval: HistoryInterval) {
+    for history in histories {
+        if history.points.is_empty() {
+            continue;
+        }
+
+        let prices: Vec<f64> = history.points.iter().map(|p| p.price).collect();
+        let start = prices[0];
+        let end = prices[prices.len() - 1];
+        let low = prices.iter().copied().fold(f64::INFINITY, f64::min);
+        let high = prices.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let change_pct = if start.abs() > f64::EPSILON {
+            ((end - start) / start) * 100.0
+        } else {
+            0.0
+        };
+
+        let trend = if change_pct >= 0.0 {
+            format!("+{change_pct:.2}%").green().to_string()
+        } else {
+            format!("{change_pct:.2}%").red().to_string()
+        };
+
+        println!(
+            "{} ({})  [{} {}d]",
+            history.symbol.bold(),
+            history.name,
+            history.currency,
+            days
+        );
+        println!("Interval: {}", interval.as_str());
+        println!(
+            "Start: {}  End: {}  Change: {}",
+            format_price(start, &history.currency),
+            format_price(end, &history.currency),
+            trend
+        );
+        println!(
+            "Low:   {}  High: {}",
+            format_price(low, &history.currency),
+            format_price(high, &history.currency)
+        );
+        println!("{}", chart::render_history_chart(history, 96, 18));
+        println!("Provider: {}", history.provider.dimmed());
+        println!();
+    }
 }
 
 fn format_crypto_amount(amount: f64, symbol: &str) -> String {

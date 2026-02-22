@@ -8,6 +8,23 @@ use crate::error::Result;
 
 const APP_VERSION: &str = env!("CRYPTOPRICE_VERSION");
 
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum ChartIntervalArg {
+    Auto,
+    Hourly,
+    Daily,
+}
+
+impl From<ChartIntervalArg> for provider::HistoryInterval {
+    fn from(value: ChartIntervalArg) -> Self {
+        match value {
+            ChartIntervalArg::Auto => Self::Auto,
+            ChartIntervalArg::Hourly => Self::Hourly,
+            ChartIntervalArg::Daily => Self::Daily,
+        }
+    }
+}
+
 #[derive(Parser)]
 #[command(
     name = "cryptoprice",
@@ -21,6 +38,18 @@ struct Cli {
     /// Output as JSON
     #[arg(long)]
     json: bool,
+
+    /// Plot historical price charts
+    #[arg(long)]
+    chart: bool,
+
+    /// Number of days of history to plot (chart mode)
+    #[arg(long, default_value_t = 7, value_parser = clap::value_parser!(u32).range(1..=365))]
+    days: u32,
+
+    /// Sampling interval for chart mode
+    #[arg(long, value_enum, default_value_t = ChartIntervalArg::Auto)]
+    interval: ChartIntervalArg,
 
     /// Price provider to use
     #[arg(long, short, default_value = config::DEFAULT_PROVIDER)]
@@ -109,6 +138,53 @@ async fn run(cli: Cli) -> Result<()> {
         ));
     }
 
+    if cli.chart && calc::is_known_fiat(&cli.symbols[0]) {
+        let base = cli.symbols[0].to_uppercase();
+        let targets: Vec<String> = cli.symbols[1..].iter().map(|s| s.to_uppercase()).collect();
+
+        if targets.is_empty() {
+            return Err(error::Error::Config(
+                "fiat chart mode requires a base and at least one target currency -- usage: cryptoprice --chart usd eur"
+                    .into(),
+            ));
+        }
+
+        if targets.iter().any(|t| !calc::is_known_fiat(t)) {
+            return Err(error::Error::Config(
+                "fiat chart mode only supports fiat currency codes (example: usd eur gbp)".into(),
+            ));
+        }
+
+        if matches!(cli.interval, ChartIntervalArg::Hourly) {
+            return Err(error::Error::Config(
+                "fiat chart mode supports daily history only -- use --interval auto or --interval daily"
+                    .into(),
+            ));
+        }
+
+        info!(
+            base = %base,
+            targets = ?targets,
+            days = cli.days,
+            "fetching fiat historical rates"
+        );
+
+        let fiat_provider = provider::frankfurter::Frankfurter::new();
+        let histories = fiat_provider.get_history(&base, &targets, cli.days).await?;
+
+        if cli.json {
+            output::json::print_history_json(&histories)?;
+        } else {
+            output::table::print_history_charts(
+                &histories,
+                cli.days,
+                provider::HistoryInterval::Daily,
+            );
+        }
+
+        return Ok(());
+    }
+
     let idx = provider::get_provider(&providers, &cli.provider).ok_or_else(|| {
         error::Error::Config(format!(
             "unknown provider '{}' -- use --list-providers to see options",
@@ -120,6 +196,12 @@ async fn run(cli: Cli) -> Result<()> {
 
     // Calc mode: detect `<number><fiat>` as first positional arg.
     if let Some(fiat) = calc::parse_fiat_amount(&cli.symbols[0]) {
+        if cli.chart {
+            return Err(error::Error::Config(
+                "chart mode is only available for direct crypto symbol lookup".into(),
+            ));
+        }
+
         let targets: Vec<String> = cli.symbols[1..].to_vec();
         if targets.is_empty() {
             return Err(error::Error::Config(
@@ -228,6 +310,28 @@ async fn run(cli: Cli) -> Result<()> {
             output::json::print_conversions_json(&conversions)?;
         } else {
             output::table::print_conversions_table(&conversions);
+        }
+
+        return Ok(());
+    }
+
+    if cli.chart {
+        info!(
+            provider = prov.id(),
+            symbols = ?cli.symbols,
+            currency = %currency,
+            days = cli.days,
+            "fetching historical prices"
+        );
+
+        let histories = prov
+            .get_price_history(&cli.symbols, &currency, cli.days, cli.interval.into())
+            .await?;
+
+        if cli.json {
+            output::json::print_history_json(&histories)?;
+        } else {
+            output::table::print_history_charts(&histories, cli.days, cli.interval.into());
         }
 
         return Ok(());

@@ -145,6 +145,8 @@ Notes:
 1. Price lookup mode: query one or more crypto symbols.
 2. Conversion mode: provide `<amount><fiat>` as the first argument, then one or more target symbols/currencies.
 
+Price lookup mode also supports chart output for historical prices.
+
 ### Price Lookup Mode
 
 Examples:
@@ -153,15 +155,57 @@ Examples:
 cryptoprice --provider coingecko btc eth
 cryptoprice -p cmc -c eur btc sol
 cryptoprice --json -p coingecko btc eth
+cryptoprice --chart --days 30 -p coingecko btc eth
+cryptoprice --chart --days 14 --interval hourly -p cmc btc
 cryptoprice --list-providers
 ```
 
 Notes:
 
-- `cmc` (CoinMarketCap) requires an API key via `--api-key`, `COINMARKETCAP_API_KEY`, or config file.
+- `cmc` (CoinMarketCap) spot price lookup requires an API key via `--api-key`, `COINMARKETCAP_API_KEY`, or config file.
 - `coingecko` works without an API key.
-- `--list-providers` shows providers available in your current environment; `cmc` appears only when an API key is configured.
+- `--list-providers` always includes both `coingecko` and `cmc`.
 - Increase logging with `-v`, `-vv`, or `-vvv` (logs are written to stderr).
+
+### Chart Mode (Price History)
+
+Use `--chart` to render an ASCII trend chart from historical prices.
+
+Examples:
+
+```sh
+cryptoprice --chart btc
+cryptoprice --chart --days 30 --currency eur btc eth
+cryptoprice --chart --json --days 14 btc
+cryptoprice --chart --days 2 --interval hourly --provider cmc btc
+cryptoprice --chart --days 30 usd eur gbp
+```
+
+Notes:
+
+- `--days` controls the history window (`1..=365`, default `7`).
+- `--interval` controls sampling (`auto`, `hourly`, `daily`; default `auto`).
+- Chart mode works in price lookup mode, not conversion mode.
+- Chart history is supported by both `coingecko` and `cmc` providers.
+- CMC chart mode uses CoinMarketCap's public web chart endpoint for `USD` and falls back to the Pro API for other quote currencies.
+- All providers use shared XDG file cache (`$XDG_CACHE_HOME/cryptoprice` or `~/.cache/cryptoprice`): CoinMarketCap coin catalog TTL is 24h, daily chart TTL is 12h; CoinGecko quote TTL is 30s and chart TTL is 1h (hourly) / 12h (daily); Frankfurter latest rates TTL is 10m and history TTL is 12h.
+
+### Fiat Chart Mode (Frankfurter)
+
+When `--chart` is enabled and all positional symbols are fiat codes, the first code is treated as the base currency and remaining codes are chart targets.
+
+Examples:
+
+```sh
+cryptoprice --chart usd eur
+cryptoprice --chart --days 90 usd eur gbp jpy
+cryptoprice --chart --json usd eur
+```
+
+Notes:
+
+- Fiat chart mode uses Frankfurter (ECB reference rates).
+- Fiat history is daily; `--interval hourly` is not supported in fiat chart mode.
 
 ### Conversion Mode (Fiat to Crypto and Fiat)
 
