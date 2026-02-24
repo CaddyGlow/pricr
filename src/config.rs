@@ -11,10 +11,10 @@ use crate::error::{Error, Result};
 pub const DEFAULT_CURRENCY: &str = "usd";
 
 /// File name used in the XDG config directory.
-pub const CONFIG_FILE_NAME: &str = "cryptoprice.toml";
+pub const CONFIG_FILE_NAME: &str = "pricr.toml";
 
-/// Application configuration loaded from `$XDG_CONFIG_HOME/cryptoprice.toml`
-/// or `~/.config/cryptoprice.toml`.
+/// Application configuration loaded from `$XDG_CONFIG_HOME/pricr.toml`
+/// or `~/.config/pricr.toml`.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {

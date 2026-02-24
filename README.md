@@ -1,6 +1,6 @@
-# cryptoprice
+# pricr
 
-`cryptoprice` is a Rust CLI for fast crypto and stock price lookup plus fiat conversion from the terminal.
+`pricr` is a Rust CLI for fast crypto and stock price lookup plus fiat conversion from the terminal.
 
 Requirements: Rust 1.85+ (edition 2024).
 
@@ -9,7 +9,7 @@ Requirements: Rust 1.85+ (edition 2024).
 Install with Cargo from this repository:
 
 ```sh
-cargo install --locked --git https://github.com/CaddyGlow/cryptoprice cryptoprice
+cargo install --locked --git https://github.com/CaddyGlow/pricr pricr
 ```
 
 Tip: pin installs with `--tag <version>` or `--rev <commit>` when you need reproducible CI/dev environments.
@@ -25,36 +25,36 @@ cargo build --release
 Build from this repository:
 
 ```sh
-nix build .#cryptoprice
+nix build .#pricr
 ```
 
 Run directly:
 
 ```sh
-nix run .#cryptoprice -- btc eth
+nix run .#pricr -- btc eth
 ```
 
 ## Install on NixOS
 
 ### From this repository as a flake input
 
-Add `cryptoprice` as an input in your system flake and include it in
+Add `pricr` as an input in your system flake and include it in
 `environment.systemPackages`:
 
 ```nix
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    cryptoprice.url = "github:CaddyGlow/cryptoprice";
+    pricr.url = "github:CaddyGlow/pricr";
   };
 
-  outputs = { nixpkgs, cryptoprice, ... }: {
+  outputs = { nixpkgs, pricr, ... }: {
     nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
         ({ pkgs, ... }: {
           environment.systemPackages = [
-            cryptoprice.packages.${pkgs.system}.cryptoprice
+            pricr.packages.${pkgs.system}.pricr
           ];
         })
       ];
@@ -69,7 +69,7 @@ Apply it with:
 sudo nixos-rebuild switch --flake .#my-host
 ```
 
-### After `cryptoprice` is in nixpkgs
+### After `pricr` is in nixpkgs
 
 Install directly from `pkgs`:
 
@@ -77,7 +77,7 @@ Install directly from `pkgs`:
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
-    cryptoprice
+    pricr
   ];
 }
 ```
@@ -86,7 +86,7 @@ Install directly from `pkgs`:
 
 Release tags publish a multi-arch image to GHCR:
 
-- `ghcr.io/caddyglow/cryptoprice`
+- `ghcr.io/caddyglow/pricr`
 - Platforms: `linux/amd64`, `linux/arm64`
 
 Published tags:
@@ -99,21 +99,21 @@ Published tags:
 Examples:
 
 ```sh
-docker run --rm ghcr.io/caddyglow/cryptoprice:latest btc eth
-docker run --rm ghcr.io/caddyglow/cryptoprice:<version> --provider coingecko btc
+docker run --rm ghcr.io/caddyglow/pricr:latest btc eth
+docker run --rm ghcr.io/caddyglow/pricr:<version> --provider coingecko btc
 ```
 
 ## Configuration File (XDG)
 
-`cryptoprice` reads optional config from:
+`pricr` reads optional config from:
 
-- `$XDG_CONFIG_HOME/cryptoprice.toml`
-- `~/.config/cryptoprice.toml` (fallback when `XDG_CONFIG_HOME` is not set)
+- `$XDG_CONFIG_HOME/pricr.toml`
+- `~/.config/pricr.toml` (fallback when `XDG_CONFIG_HOME` is not set)
 
 You can also pass an explicit file path:
 
 ```sh
-cryptoprice --config /path/to/cryptoprice.toml btc eth
+pricr --config /path/to/pricr.toml btc eth
 ```
 
 Example:
@@ -140,14 +140,14 @@ Precedence:
 
 Notes:
 
-- `[defaults].currency` sets the default quote currency for normal price lookup mode (for example `cryptoprice btc eth`).
+- `[defaults].currency` sets the default quote currency for normal price lookup mode (for example `pricr btc eth`).
 - `[defaults].provider_order` controls provider priority when `--provider` is omitted. Unknown provider ids return a config error.
-- `[watchlists]` lets you define reusable symbol groups and call them as positional arguments with `@name` (for example `cryptoprice @commodities`).
+- `[watchlists]` lets you define reusable symbol groups and call them as positional arguments with `@name` (for example `pricr @commodities`).
 - Conversion mode does not use `[defaults].currency` for the source currency; it uses the first argument (for example `100usd`).
 
 ## CLI Overview
 
-`cryptoprice` supports three modes:
+`pricr` supports three modes:
 
 1. Price lookup mode: query one or more symbols (crypto or stocks).
 2. Conversion mode: provide `<amount><fiat>` as the first argument, then one or more target symbols/currencies.
@@ -160,17 +160,17 @@ Price lookup mode also supports chart output for historical prices.
 Examples:
 
 ```sh
-cryptoprice --provider coingecko btc eth
-cryptoprice -p cmc -c eur btc sol
-cryptoprice -p yahoo CW8.PA VWCE.DE
-cryptoprice -p stooq aapl msft nvda
-cryptoprice --provider yahoo @commodities
-cryptoprice @commodities
-cryptoprice --json -p coingecko btc eth
-cryptoprice --chart --interval 1M -p coingecko btc eth
-cryptoprice --chart --interval 1Y -p yahoo CW8.PA
-cryptoprice --chart --interval 5D --sampling hourly -p cmc btc
-cryptoprice --list-providers
+pricr --provider coingecko btc eth
+pricr -p cmc -c eur btc sol
+pricr -p yahoo CW8.PA VWCE.DE
+pricr -p stooq aapl msft nvda
+pricr --provider yahoo @commodities
+pricr @commodities
+pricr --json -p coingecko btc eth
+pricr --chart --interval 1M -p coingecko btc eth
+pricr --chart --interval 1Y -p yahoo CW8.PA
+pricr --chart --interval 5D --sampling hourly -p cmc btc
+pricr --list-providers
 ```
 
 Notes:
@@ -188,18 +188,18 @@ Notes:
 
 Use `--search` to find matching ticker symbols before running price lookup.
 
-You can also use shorthand style `cryptoprice search <query>`.
+You can also use shorthand style `pricr search <query>`.
 
 Examples:
 
 ```sh
-cryptoprice --search apple
-cryptoprice search apple
-cryptoprice --provider stooq --search apple
-cryptoprice --provider stooq --search tesla --search-limit 5
-cryptoprice --provider stooq --search nvidia --json
-cryptoprice search --provider stooq apple
-cryptoprice search --provider yahoo cw8
+pricr --search apple
+pricr search apple
+pricr --provider stooq --search apple
+pricr --provider stooq --search tesla --search-limit 5
+pricr --provider stooq --search nvidia --json
+pricr search --provider stooq apple
+pricr search --provider yahoo cw8
 ```
 
 Notes:
@@ -215,12 +215,12 @@ Use `--chart` to render an ASCII trend chart from historical prices.
 Examples:
 
 ```sh
-cryptoprice --chart btc
-cryptoprice --chart --interval 1M --currency eur btc eth
-cryptoprice --chart --interval 5D --json btc
-cryptoprice --chart --interval 5D --sampling hourly --provider cmc btc
-cryptoprice --chart --interval 6M --end-date 2025-12-31 usd eur gbp
-cryptoprice --chart --provider yahoo --start-date 2025-01-01 --end-date 2025-12-31 CW8.PA
+pricr --chart btc
+pricr --chart --interval 1M --currency eur btc eth
+pricr --chart --interval 5D --json btc
+pricr --chart --interval 5D --sampling hourly --provider cmc btc
+pricr --chart --interval 6M --end-date 2025-12-31 usd eur gbp
+pricr --chart --provider yahoo --start-date 2025-01-01 --end-date 2025-12-31 CW8.PA
 ```
 
 Notes:
@@ -234,7 +234,7 @@ Notes:
 - CMC chart mode uses CoinMarketCap's public web chart endpoint for `USD` and falls back to the Pro API for other quote currencies.
 - Yahoo chart mode uses explicit `period1/period2` windows when `--start-date`/`--end-date` are provided.
 - Stooq chart mode is daily and does not provide market cap values.
-- All providers use shared XDG file cache (`$XDG_CACHE_HOME/cryptoprice` or `~/.cache/cryptoprice`): CoinMarketCap coin catalog TTL is 24h, daily chart TTL is 12h; CoinGecko quote TTL is 30s and chart TTL is 1h (hourly) / 12h (daily); Yahoo quote TTL is 30s, search TTL is 10m, and chart TTL is 1h (hourly) / 12h (daily); Stooq quote TTL is 30s and history TTL is 12h; Frankfurter latest rates TTL is 10m and history TTL is 12h.
+- All providers use shared XDG file cache (`$XDG_CACHE_HOME/pricr` or `~/.cache/pricr`): CoinMarketCap coin catalog TTL is 24h, daily chart TTL is 12h; CoinGecko quote TTL is 30s and chart TTL is 1h (hourly) / 12h (daily); Yahoo quote TTL is 30s, search TTL is 10m, and chart TTL is 1h (hourly) / 12h (daily); Stooq quote TTL is 30s and history TTL is 12h; Frankfurter latest rates TTL is 10m and history TTL is 12h.
 
 ### Fiat Chart Mode (Frankfurter)
 
@@ -243,9 +243,9 @@ When `--chart` is enabled and all positional symbols are fiat codes, the first c
 Examples:
 
 ```sh
-cryptoprice --chart usd eur
-cryptoprice --chart --interval 6M usd eur gbp jpy
-cryptoprice --chart --json usd eur
+pricr --chart usd eur
+pricr --chart --interval 6M usd eur gbp jpy
+pricr --chart --json usd eur
 ```
 
 Notes:
@@ -265,9 +265,9 @@ Input rules:
 Examples:
 
 ```sh
-cryptoprice 100usd btc eth eur jpy
-cryptoprice 250eur usd chf
-cryptoprice --json -p coingecko 75gbp sol usd
+pricr 100usd btc eth eur jpy
+pricr 250eur usd chf
+pricr --json -p coingecko 75gbp sol usd
 ```
 
 How conversion works:
@@ -287,7 +287,7 @@ Conversion mode recognizes these fiat codes:
 Command:
 
 ```sh
-cryptoprice --provider coingecko btc eth
+pricr --provider coingecko btc eth
 ```
 
 Example table output:
@@ -304,7 +304,7 @@ Example table output:
 Command:
 
 ```sh
-cryptoprice 100usd btc eur
+pricr 100usd btc eur
 ```
 
 Example conversion output:
@@ -323,7 +323,7 @@ Example conversion output:
 Command:
 
 ```sh
-cryptoprice --json --provider coingecko btc eth
+pricr --json --provider coingecko btc eth
 ```
 
 Example JSON output:
@@ -356,7 +356,7 @@ Example JSON output:
 Command (conversion mode):
 
 ```sh
-cryptoprice --json 100usd btc eur
+pricr --json 100usd btc eur
 ```
 
 Example conversion JSON output:

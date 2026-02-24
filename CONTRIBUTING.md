@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to `cryptoprice`.
+Thanks for contributing to `pricr`.
 
 ## Development Setup
 

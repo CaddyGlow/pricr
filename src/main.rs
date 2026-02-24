@@ -1,6 +1,6 @@
 use chrono::{Datelike, NaiveDate};
 use clap::Parser;
-use cryptoprice::{calc, config, error, output, provider};
+use pricr::{calc, config, error, output, provider};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tracing::{error, info, warn};
@@ -8,7 +8,7 @@ use tracing_subscriber::EnvFilter;
 
 use crate::error::Result;
 
-const APP_VERSION: &str = env!("CRYPTOPRICE_VERSION");
+const APP_VERSION: &str = env!("PRICR_VERSION");
 const MAX_CHART_FETCH_DAYS: u32 = 36_500;
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -440,7 +440,7 @@ async fn fetch_prices_with_provider_fallback(
 
 #[derive(Parser)]
 #[command(
-    name = "cryptoprice",
+    name = "pricr",
     version = APP_VERSION,
     about = "Fetch crypto and stock prices from your terminal"
 )]
@@ -608,7 +608,7 @@ async fn run(cli: Cli) -> Result<()> {
     if let Some(query) = search_query {
         if query.is_empty() {
             return Err(error::Error::Config(
-                "search mode requires a query -- usage: cryptoprice --search apple".into(),
+                "search mode requires a query -- usage: pricr --search apple".into(),
             ));
         }
 
@@ -646,7 +646,7 @@ async fn run(cli: Cli) -> Result<()> {
 
     if symbols.is_empty() {
         return Err(error::Error::Config(
-            "no symbols provided -- usage: cryptoprice btc eth".into(),
+            "no symbols provided -- usage: pricr btc eth".into(),
         ));
     }
 
@@ -687,7 +687,7 @@ async fn run(cli: Cli) -> Result<()> {
 
         if targets.is_empty() {
             return Err(error::Error::Config(
-                "fiat chart mode requires a base and at least one target currency -- usage: cryptoprice --chart usd eur"
+                "fiat chart mode requires a base and at least one target currency -- usage: pricr --chart usd eur"
                     .into(),
             ));
         }
@@ -748,8 +748,7 @@ async fn run(cli: Cli) -> Result<()> {
         let targets: Vec<String> = symbols[1..].to_vec();
         if targets.is_empty() {
             return Err(error::Error::Config(
-                "calc mode requires at least one target coin -- usage: cryptoprice 3.5EUR xmr"
-                    .into(),
+                "calc mode requires at least one target coin -- usage: pricr 3.5EUR xmr".into(),
             ));
         }
 

@@ -1,7 +1,7 @@
-use cryptoprice::error::Error;
-use cryptoprice::provider::PriceProvider;
-use cryptoprice::provider::coingecko::CoinGecko;
-use cryptoprice::provider::coinmarketcap::CoinMarketCap;
+use pricr::error::Error;
+use pricr::provider::PriceProvider;
+use pricr::provider::coingecko::CoinGecko;
+use pricr::provider::coinmarketcap::CoinMarketCap;
 use wiremock::matchers::{header, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 

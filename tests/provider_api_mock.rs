@@ -1,10 +1,10 @@
-use cryptoprice::error::Error;
-use cryptoprice::provider::coingecko::CoinGecko;
-use cryptoprice::provider::coinmarketcap::CoinMarketCap;
-use cryptoprice::provider::frankfurter::Frankfurter;
-use cryptoprice::provider::stooq::Stooq;
-use cryptoprice::provider::yahoo::YahooFinance;
-use cryptoprice::provider::{HistoryInterval, PriceProvider};
+use pricr::error::Error;
+use pricr::provider::coingecko::CoinGecko;
+use pricr::provider::coinmarketcap::CoinMarketCap;
+use pricr::provider::frankfurter::Frankfurter;
+use pricr::provider::stooq::Stooq;
+use pricr::provider::yahoo::YahooFinance;
+use pricr::provider::{HistoryInterval, PriceProvider};
 use wiremock::matchers::{header, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 

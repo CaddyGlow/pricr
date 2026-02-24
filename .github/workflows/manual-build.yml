@@ -24,7 +24,7 @@ on:
         type: string
 
 env:
-  APP_NAME: cryptoprice
+  APP_NAME: pricr
 
 jobs:
   build:

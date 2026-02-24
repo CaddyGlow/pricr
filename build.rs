@@ -12,7 +12,7 @@ fn main() {
         .or_else(git_tag_version)
         .unwrap_or_else(|| env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "0.0.0".to_string()));
 
-    println!("cargo:rustc-env=CRYPTOPRICE_VERSION={version}");
+    println!("cargo:rustc-env=PRICR_VERSION={version}");
 }
 
 fn github_tag_version() -> Option<String> {

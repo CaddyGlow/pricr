@@ -29,7 +29,7 @@ impl YahooFinance {
     /// Create a Yahoo Finance provider with a custom base URL.
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
         let client = Client::builder()
-            .user_agent("cryptoprice/0.1.0")
+            .user_agent("pricr/0.1.0")
             .build()
             .expect("failed to build HTTP client");
 

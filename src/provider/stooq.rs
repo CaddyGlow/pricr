@@ -35,7 +35,7 @@ impl Stooq {
     /// Create a Stooq provider with custom quote/history and search base URLs.
     pub fn with_base_urls(base_url: impl Into<String>, search_base_url: impl Into<String>) -> Self {
         let client = Client::builder()
-            .user_agent("cryptoprice/0.1.0")
+            .user_agent("pricr/0.1.0")
             .build()
             .expect("failed to build HTTP client");
         Self {

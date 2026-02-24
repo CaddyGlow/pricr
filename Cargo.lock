@@ -323,30 +323,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cryptoprice"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "cargo-husky",
- "chrono",
- "clap",
- "colored",
- "dotenvy",
- "futures",
- "ratatui",
- "reqwest",
- "serde",
- "serde_json",
- "tabled",
- "thiserror",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
- "wiremock",
-]
-
-[[package]]
 name = "darling"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1165,6 +1141,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "pricr"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "cargo-husky",
+ "chrono",
+ "clap",
+ "colored",
+ "dotenvy",
+ "futures",
+ "ratatui",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tabled",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "wiremock",
 ]
 
 [[package]]

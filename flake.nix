@@ -1,5 +1,5 @@
 {
-  description = "cryptoprice: Rust CLI for cryptocurrency prices";
+  description = "pricr: Rust CLI for cryptocurrency prices";
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
@@ -12,28 +12,28 @@
       system:
       let
         pkgs = import nixpkgs { inherit system; };
-        cryptoprice = pkgs.callPackage ./nix/package.nix { };
-        cryptopriceApp = {
+        pricr = pkgs.callPackage ./nix/package.nix { };
+        pricrApp = {
           type = "app";
-          program = "${cryptoprice}/bin/cryptoprice";
+          program = "${pricr}/bin/pricr";
           meta = {
-            description = "Run the cryptoprice CLI";
+            description = "Run the pricr CLI";
           };
         };
       in
       {
         packages = {
-          inherit cryptoprice;
-          default = cryptoprice;
+          inherit pricr;
+          default = pricr;
         };
 
         apps = {
-          cryptoprice = cryptopriceApp;
-          default = cryptopriceApp;
+          pricr = pricrApp;
+          default = pricrApp;
         };
 
         checks = {
-          inherit cryptoprice;
+          inherit pricr;
         };
 
         devShells.default = pkgs.mkShell {

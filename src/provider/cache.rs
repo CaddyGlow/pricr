@@ -60,7 +60,7 @@ fn cache_path(provider: &str, key: &str) -> Option<PathBuf> {
     let root = cache_root()?;
     let provider_dir = sanitize_component(provider);
     let file = format!("{}.json", hash_key(key));
-    Some(root.join("cryptoprice").join(provider_dir).join(file))
+    Some(root.join("pricr").join(provider_dir).join(file))
 }
 
 fn cache_root() -> Option<PathBuf> {

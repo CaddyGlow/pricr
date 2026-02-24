@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// Unified error type for the cryptoprice application.
+/// Unified error type for the pricr application.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("HTTP request failed: {0}")]

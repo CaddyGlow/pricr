@@ -1,7 +1,7 @@
 { lib, rustPlatform }:
 
 rustPlatform.buildRustPackage {
-  pname = "cryptoprice";
+  pname = "pricr";
   version = "0.1.0";
 
   src = lib.cleanSourceWith {
@@ -26,9 +26,9 @@ rustPlatform.buildRustPackage {
 
   meta = {
     description = "A modern Rust CLI for cryptocurrency prices and conversions";
-    homepage = "https://github.com/CaddyGlow/cryptoprice";
+    homepage = "https://github.com/CaddyGlow/pricr";
     license = lib.licenses.mit;
-    mainProgram = "cryptoprice";
+    mainProgram = "pricr";
     platforms = lib.platforms.unix;
   };
 }

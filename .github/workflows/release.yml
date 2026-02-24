@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  APP_NAME: cryptoprice
+  APP_NAME: pricr
 
 jobs:
   test:
