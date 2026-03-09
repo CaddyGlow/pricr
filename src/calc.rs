@@ -15,6 +15,13 @@ pub struct FiatAmount {
     pub currency: String,
 }
 
+/// A parsed crypto amount from user input (e.g. `2.5XMR`).
+#[derive(Debug, Clone)]
+pub struct CryptoAmount {
+    pub amount: f64,
+    pub symbol: String,
+}
+
 /// Result of a fiat-to-crypto conversion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Conversion {
@@ -54,6 +61,35 @@ pub fn parse_fiat_amount(s: &str) -> Option<FiatAmount> {
     Some(FiatAmount {
         amount,
         currency: code_upper,
+    })
+}
+
+/// Try to parse a string like `2.5XMR` or `0.1btc` into a `CryptoAmount`.
+///
+/// Succeeds when the alphabetic suffix is NOT a known fiat currency, treating it
+/// as a crypto symbol. Returns `None` for fiat codes, plain words, or invalid numbers.
+pub fn parse_crypto_amount(s: &str) -> Option<CryptoAmount> {
+    let alpha_start = s.find(|c: char| c.is_ascii_alphabetic())?;
+    if alpha_start == 0 {
+        return None;
+    }
+
+    let (num_part, code_part) = s.split_at(alpha_start);
+    let code_upper = code_part.to_uppercase();
+
+    // If it's a known fiat code, this isn't a crypto amount.
+    if KNOWN_FIAT.contains(&code_upper.as_str()) {
+        return None;
+    }
+
+    let amount: f64 = num_part.parse().ok()?;
+    if amount <= 0.0 || !amount.is_finite() {
+        return None;
+    }
+
+    Some(CryptoAmount {
+        amount,
+        symbol: code_upper,
     })
 }
 
@@ -173,5 +209,29 @@ mod tests {
     #[test]
     fn fiat_name_unknown_returns_code() {
         assert_eq!(fiat_name("XYZ"), "XYZ");
+    }
+
+    #[test]
+    fn parse_crypto_basic() {
+        let ca = parse_crypto_amount("2.5XMR").unwrap();
+        assert!((ca.amount - 2.5).abs() < f64::EPSILON);
+        assert_eq!(ca.symbol, "XMR");
+
+        let ca = parse_crypto_amount("0.1btc").unwrap();
+        assert!((ca.amount - 0.1).abs() < f64::EPSILON);
+        assert_eq!(ca.symbol, "BTC");
+    }
+
+    #[test]
+    fn parse_crypto_rejects_fiat() {
+        assert!(parse_crypto_amount("100USD").is_none());
+        assert!(parse_crypto_amount("3.5eur").is_none());
+    }
+
+    #[test]
+    fn parse_crypto_rejects_invalid() {
+        assert!(parse_crypto_amount("btc").is_none());
+        assert!(parse_crypto_amount("0BTC").is_none());
+        assert!(parse_crypto_amount("-1ETH").is_none());
     }
 }

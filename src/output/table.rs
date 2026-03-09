@@ -70,26 +70,65 @@ pub fn print_conversions_table(conversions: &[Conversion]) {
     let rows: Vec<ConversionRow> = conversions
         .iter()
         .map(|c| {
-            let from_sym = currency_symbol(&c.from_currency);
-            let is_fiat = calc::is_known_fiat(&c.to_symbol);
+            let from_is_fiat = calc::is_known_fiat(&c.from_currency);
+            let to_is_fiat = calc::is_known_fiat(&c.to_symbol);
 
-            let result = if is_fiat {
+            let amount = if from_is_fiat {
+                let from_sym = currency_symbol(&c.from_currency);
+                format!("{}{}", from_sym, format_with_commas(c.from_amount, 2))
+            } else {
+                format_crypto_amount(c.from_amount, &c.from_currency)
+            };
+
+            let result = if to_is_fiat {
                 let to_sym = currency_symbol(&c.to_symbol);
                 format!("{}{}", to_sym, format_with_commas(c.to_amount, 2))
             } else {
                 format_crypto_amount(c.to_amount, &c.to_symbol)
             };
 
-            ConversionRow {
-                amount: format!("{}{}", from_sym, format_with_commas(c.from_amount, 2)),
-                arrow: "->".to_string(),
-                result,
-                rate: format!(
+            let rate = if from_is_fiat && !to_is_fiat {
+                // fiat->crypto: "1 XMR = €294.52"
+                let from_sym = currency_symbol(&c.from_currency);
+                format!(
                     "1 {} = {}{}",
                     c.to_symbol.to_uppercase(),
                     from_sym,
                     format_with_commas(c.rate, 2)
-                ),
+                )
+            } else if !from_is_fiat && to_is_fiat {
+                // crypto->fiat: "1 XMR = €294.52"
+                let to_sym = currency_symbol(&c.to_symbol);
+                format!(
+                    "1 {} = {}{}",
+                    c.from_currency.to_uppercase(),
+                    to_sym,
+                    format_with_commas(c.rate, 2)
+                )
+            } else if from_is_fiat && to_is_fiat {
+                // fiat->fiat: "1 EUR = $1.08"
+                let from_sym = currency_symbol(&c.from_currency);
+                format!(
+                    "1 {} = {}{}",
+                    c.to_symbol.to_uppercase(),
+                    from_sym,
+                    format_with_commas(c.rate, 2)
+                )
+            } else {
+                // crypto->crypto: "1 BTC = 15.23 ETH"
+                format!(
+                    "1 {} = {} {}",
+                    c.from_currency.to_uppercase(),
+                    format_with_commas(c.rate, 6),
+                    c.to_symbol.to_uppercase()
+                )
+            };
+
+            ConversionRow {
+                amount,
+                arrow: "->".to_string(),
+                result,
+                rate,
                 provider: c.provider.clone().dimmed().to_string(),
             }
         })

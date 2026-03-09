@@ -891,6 +891,144 @@ async fn run(cli: Cli) -> Result<()> {
         return Ok(());
     }
 
+    // Calc mode (crypto source): detect `<number><crypto>` as first positional arg.
+    if let Some(crypto) = calc::parse_crypto_amount(&symbols[0]) {
+        if cli.chart {
+            return Err(error::Error::Config(
+                "chart mode is only available for direct symbol lookup".into(),
+            ));
+        }
+
+        let targets: Vec<String> = symbols[1..].to_vec();
+        if targets.is_empty() {
+            return Err(error::Error::Config(
+                "calc mode requires at least one target -- usage: pricr 2.5XMR eur".into(),
+            ));
+        }
+
+        // Partition targets into fiat currencies and crypto symbols.
+        let (fiat_targets, crypto_targets): (Vec<String>, Vec<String>) =
+            targets.into_iter().partition(|t| calc::is_known_fiat(t));
+
+        let ordered_ids = provider_ids_for_indices(&providers, &provider_indices);
+        info!(
+            providers = ?ordered_ids,
+            amount = crypto.amount,
+            symbol = %crypto.symbol,
+            fiat_targets = ?fiat_targets,
+            crypto_targets = ?crypto_targets,
+            "calc mode (crypto source): fetching prices for conversion"
+        );
+
+        let mut conversions: Vec<calc::Conversion> = Vec::new();
+
+        // For fiat targets: look up the source crypto price in each target fiat currency,
+        // then multiply. We use the first fiat target as the base and Frankfurter for cross-rates.
+        if !fiat_targets.is_empty() {
+            let base_fiat = fiat_targets[0].to_uppercase();
+            let prices = if cli.provider.is_some() {
+                prov.get_prices(std::slice::from_ref(&crypto.symbol), &base_fiat)
+                    .await?
+            } else {
+                fetch_prices_with_provider_fallback(
+                    &providers,
+                    &provider_indices,
+                    std::slice::from_ref(&crypto.symbol),
+                    &base_fiat,
+                )
+                .await?
+            };
+
+            if let Some(p) = prices.first() {
+                // Direct conversion for the base fiat target.
+                conversions.push(calc::Conversion {
+                    from_amount: crypto.amount,
+                    from_currency: crypto.symbol.clone(),
+                    to_symbol: base_fiat.clone(),
+                    to_name: calc::fiat_name(&base_fiat).to_string(),
+                    to_amount: crypto.amount * p.price,
+                    rate: p.price,
+                    provider: p.provider.clone(),
+                    timestamp: chrono::Utc::now(),
+                });
+
+                // Cross-rate conversions for remaining fiat targets via Frankfurter.
+                if fiat_targets.len() > 1 {
+                    let other_fiats: Vec<String> =
+                        fiat_targets[1..].iter().map(|s| s.to_uppercase()).collect();
+                    let fiat_provider = provider::frankfurter::Frankfurter::new();
+                    let rates = fiat_provider.get_rates(&base_fiat, &other_fiats).await?;
+                    let base_value = crypto.amount * p.price;
+                    for target in &other_fiats {
+                        if let Some(&rate) = rates.get(target) {
+                            conversions.push(calc::Conversion {
+                                from_amount: crypto.amount,
+                                from_currency: crypto.symbol.clone(),
+                                to_symbol: target.clone(),
+                                to_name: calc::fiat_name(target).to_string(),
+                                to_amount: base_value * rate,
+                                rate: p.price * rate,
+                                provider: format!("{} + Frankfurter/ECB", p.provider),
+                                timestamp: chrono::Utc::now(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // For crypto targets: look up both source and target in USD, compute cross-rate.
+        if !crypto_targets.is_empty() {
+            let mut all_symbols = vec![crypto.symbol.clone()];
+            all_symbols.extend(crypto_targets.iter().cloned());
+            let prices = if cli.provider.is_some() {
+                prov.get_prices(&all_symbols, "USD").await?
+            } else {
+                fetch_prices_with_provider_fallback(
+                    &providers,
+                    &provider_indices,
+                    &all_symbols,
+                    "USD",
+                )
+                .await?
+            };
+
+            let source_price = prices
+                .iter()
+                .find(|p| p.symbol.eq_ignore_ascii_case(&crypto.symbol))
+                .map(|p| p.price);
+
+            if let Some(src_price) = source_price {
+                for target_sym in &crypto_targets {
+                    if let Some(tgt) = prices
+                        .iter()
+                        .find(|p| p.symbol.eq_ignore_ascii_case(target_sym))
+                    {
+                        let cross_rate = src_price / tgt.price;
+                        conversions.push(calc::Conversion {
+                            from_amount: crypto.amount,
+                            from_currency: crypto.symbol.clone(),
+                            to_symbol: tgt.symbol.clone(),
+                            to_name: tgt.name.clone(),
+                            to_amount: crypto.amount * cross_rate,
+                            rate: cross_rate,
+                            provider: tgt.provider.clone(),
+                            timestamp: chrono::Utc::now(),
+                        });
+                    }
+                }
+            }
+        }
+
+        if cli.json {
+            output::json::print_conversions_json(&conversions)?;
+        } else {
+            output::table::print_conversions_table(&conversions);
+        }
+
+        return Ok(());
+    }
+
     if cli.chart {
         info!(
             provider = prov.id(),
